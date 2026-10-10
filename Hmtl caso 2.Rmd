@@ -1,0 +1,100 @@
+---
+title: "Caso2"
+output: html_document
+date: "2026-10-10"
+---
+
+# 1 Introduccion
+
+La educación es uno de los pilares fundamentales para el desarrollo social y económico de una región, ya que contribuye a la formación de capital humano y a la generación de oportunidades. En Colombia, las pruebas Saber 11, aplicadas por el Instituto Colombiano para la Evaluación de la Educación (ICFES), constituyen una herramienta importante para evaluar las competencias adquiridas por los estudiantes al finalizar la educación media. Sus resultados permiten conocer el desempeño académico de la población estudiantil e identificar diferencias que pueden estar relacionadas con las condiciones sociales, económicas y educativas en las que se desarrolla el proceso de aprendizaje.
+
+El desempeño de los estudiantes no depende únicamente de sus conocimientos y habilidades individuales, sino que también puede estar relacionado con factores externos que influyen en sus oportunidades de aprendizaje. Aspectos como el estrato socioeconómico, el acceso a internet, la disponibilidad de un computador, el municipio de residencia y la ubicación urbana o rural de las instituciones educativas pueden reflejar diferencias en el acceso a recursos y condiciones de estudio. Estas características adquieren especial relevancia en el año 2020, cuando la pandemia de COVID-19 provocó importantes cambios en el sistema educativo colombiano y puso en evidencia las desigualdades existentes en el acceso a herramientas tecnológicas y recursos para la educación.
+
+En este contexto, el presente estudio utiliza una base de datos de los resultados de las pruebas Saber 11 correspondientes a estudiantes del Valle del Cauca durante el año 2020, con el propósito de desarrollar un ejercicio de clasificación supervisada. La investigación se centra en determinar si un estudiante supera o no el percentil 25 de la distribución nacional, tomando esta condición como variable dependiente binaria. Para ello, se consideran seis características: género, municipio de residencia, estrato socioeconómico, acceso a internet, disponibilidad de computador y ubicación urbana o rural del establecimiento educativo. A partir de esta información, se busca identificar patrones que permitan clasificar a los estudiantes según su posición relativa en los resultados nacionales.
+
+La importancia de realizar esta clasificación radica en la posibilidad de reconocer qué características se relacionan con una mayor o menor probabilidad de superar el umbral establecido. En particular, el análisis permite explorar si las diferencias en las condiciones socioeconómicas, el acceso a recursos tecnológicos y el entorno educativo se reflejan en los resultados académicos. Asimismo, identificar estos patrones puede aportar información útil para comprender las desigualdades educativas presentes en el Valle del Cauca y orientar futuras investigaciones o estrategias dirigidas a mejorar las oportunidades de aprendizaje. Es importante señalar que estas relaciones no necesariamente implican causalidad, pero pueden proporcionar evidencia relevante sobre las diferencias observadas entre los estudiantes.
+
+El objetivo de esta investigación es desarrollar y comparar dos modelos de clasificación supervisada, regresión logística (Logit) y K vecinos más cercanos (KNN), para determinar qué tan bien las características sociodemográficas, socioeconómicas y educativas permiten clasificar a los estudiantes del Valle del Cauca según si superan el percentil 25 nacional en las pruebas Saber 11 de 2020. La comparación de ambos modelos permitirá evaluar dos enfoques diferentes: uno estadístico y paramétrico, basado en la estimación de probabilidades, y otro no paramétrico, fundamentado en la similitud entre observaciones. Su desempeño se analizará mediante métricas como exactitud (accuracy), sensibilidad, especificidad y área bajo la curva ROC (AUC), con el fin de identificar cuál ofrece mejores resultados para el problema planteado.
+
+De esta manera, el estudio busca no solo evaluar la capacidad predictiva de los modelos, sino también aportar una perspectiva cuantitativa sobre la relación entre las condiciones de los estudiantes y su desempeño académico. Los resultados permitirán establecer hasta qué punto las variables seleccionadas son suficientes para realizar una clasificación adecuada y determinar si los modelos desarrollados responden al objetivo de la investigación.
+
+
+# Metodologia
+
+
+
+```{r Tabla de variables}
+
+library(knitr)
+library(kableExtra)
+
+# Crear tabla de variables
+tabla_variables <- data.frame(
+  
+  Variable = c(
+    "Supera_P25 (Y)",
+    "Género",
+    "Municipio de residencia",
+    "Estrato socioeconómico",
+    "Acceso a internet",
+    "Disponibilidad de computador",
+    "Ubicación del colegio"
+  ),
+  
+  Descripción = c(
+    "Indica si el estudiante supera el percentil 25 nacional en las pruebas Saber 11.",
+    "Género registrado del estudiante.",
+    "Municipio donde reside el estudiante.",
+    "Estrato socioeconómico de la vivienda del estudiante.",
+    "Indica si el hogar dispone de conexión a internet.",
+    "Indica si el hogar cuenta con computador.",
+    "Identifica si el colegio se encuentra en una zona urbana o rural."
+  ),
+  
+  `Tipo de variable` = c(
+    "Categórica binaria",
+    "Categórica nominal",
+    "Categórica nominal",
+    "Categórica ordinal*",
+    "Categórica binaria",
+    "Categórica binaria",
+    "Categórica binaria"
+  ),
+  
+  `Ejemplos / Notas` = c(
+    "0 = No supera P25; 1 = Supera P25.",
+    "Femenino, Masculino.",
+    "Cali, Palmira, Tuluá, Buenaventura, entre otros.",
+    "Estratos 1 a 6; Sin estrato.",
+    "Sí, No.",
+    "Sí, No.",
+    "Urbano, Rural."
+  ),
+  
+  check.names = FALSE
+)
+
+# Mostrar tabla
+tabla_variables %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 1. Variables utilizadas en el modelo de clasificación del desempeño académico",
+    align = c("l", "l", "l", "l")
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020).",
+      "* Los estratos 1 a 6 tienen un orden natural;",
+      "'Sin estrato' es una categoría adicional sin orden."
+    ),
+    general_title = ""
+  )
+
+```
+
