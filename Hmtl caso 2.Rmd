@@ -22,13 +22,12 @@ De esta manera, el estudio busca no solo evaluar la capacidad predictiva de los 
 # Metodologia
 
 
-
 ```{r Tabla de variables}
 
 library(knitr)
 library(kableExtra)
 
-# Crear tabla de variables
+
 tabla_variables <- data.frame(
   
   Variable = c(
@@ -74,7 +73,7 @@ tabla_variables <- data.frame(
   check.names = FALSE
 )
 
-# Mostrar tabla
+
 tabla_variables %>%
   kbl(
     format = "html",
