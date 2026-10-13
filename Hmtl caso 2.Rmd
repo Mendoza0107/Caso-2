@@ -4,6 +4,18 @@ output: html_document
 date: "2026-10-10"
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+
+
+
+
 # 1 Introduccion
 
 La educación es uno de los pilares fundamentales para el desarrollo social y económico de una región, ya que contribuye a la formación de capital humano y a la generación de oportunidades. En Colombia, las pruebas Saber 11, aplicadas por el Instituto Colombiano para la Evaluación de la Educación (ICFES), constituyen una herramienta importante para evaluar las competencias adquiridas por los estudiantes al finalizar la educación media. Sus resultados permiten conocer el desempeño académico de la población estudiantil e identificar diferencias que pueden estar relacionadas con las condiciones sociales, económicas y educativas en las que se desarrolla el proceso de aprendizaje.
@@ -19,8 +31,7 @@ El objetivo de esta investigación es desarrollar y comparar dos modelos de clas
 De esta manera, el estudio busca no solo evaluar la capacidad predictiva de los modelos, sino también aportar una perspectiva cuantitativa sobre la relación entre las condiciones de los estudiantes y su desempeño académico. Los resultados permitirán establecer hasta qué punto las variables seleccionadas son suficientes para realizar una clasificación adecuada y determinar si los modelos desarrollados responden al objetivo de la investigación.
 
 
-# Metodologia
-
+# 2 Metodologia
 
 ```{r Tabla de variables}
 
@@ -95,5 +106,400 @@ tabla_variables %>%
     general_title = ""
   )
 
+```
+
+
+
+
+
+
+# 3 Analisis descriptivo
+
+## 3.1 Distribución de las características de los estudiantes
+
+```{r}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+tabla_descriptiva <- readRDS("tabla_descriptiva.rds")
+
+# Seleccionar variables para la primera tabla
+tabla_2 <- tabla_descriptiva %>%
+  filter(
+    Variable %in% c(
+      "Supera percentil 25",
+      "Género",
+      "Estrato socioeconómico",
+      "Acceso a internet",
+      "Disponibilidad de computador",
+      "Ubicación del colegio"
+    )
+  ) %>%
+  mutate(
+    Variable = factor(
+      Variable,
+      levels = c(
+        "Supera percentil 25",
+        "Género",
+        "Estrato socioeconómico",
+        "Acceso a internet",
+        "Disponibilidad de computador",
+        "Ubicación del colegio"
+      )
+    )
+  ) %>%
+  arrange(Variable, Categoria) %>%
+  mutate(
+    Variable = as.character(Variable),
+    Porcentaje = sprintf("%.2f%%", Porcentaje)
+  ) %>%
+  rename(
+    `Categoría` = Categoria,
+    `Frecuencia (n)` = Frecuencia,
+    `Porcentaje (%)` = Porcentaje
+  )
+
+# Mostrar tabla en HTML
+tabla_2 %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 2. Distribución de las características de los estudiantes del Valle del Cauca",
+    align = c("l", "l", "r", "r"),
+    escape = TRUE
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020)."
+    ),
+    general_title = ""
+  )
+```
+
+
+
+
+
+## 3.2 Distribución de estudiantes por municipio de residencia
+
+```{r}
+tabla_descriptiva <- readRDS("tabla_descriptiva.rds")
+
+# Seleccionar información de municipios
+tabla_municipios <- tabla_descriptiva %>%
+  filter(Variable == "Municipio de residencia") %>%
+  arrange(desc(Frecuencia))
+
+# Identificar los 10 municipios con mayor frecuencia
+top_10 <- tabla_municipios %>%
+  slice_head(n = 10)
+
+# Agrupar los municipios restantes
+otros <- tabla_municipios %>%
+  slice(-(1:min(10, n()))) %>%
+  summarise(
+    Variable = "Municipio de residencia",
+    Categoria = "Otros",
+    Frecuencia = sum(Frecuencia),
+    Porcentaje = sum(Porcentaje)
+  )
+
+# Construir tabla final
+tabla_3 <- bind_rows(top_10, otros) %>%
+  select(Categoria, Frecuencia, Porcentaje) %>%
+  mutate(
+    Porcentaje = sprintf("%.2f%%", Porcentaje)
+  ) %>%
+  rename(
+    Municipio = Categoria,
+    `Frecuencia (n)` = Frecuencia,
+    `Porcentaje (%)` = Porcentaje
+  )
+
+# Mostrar tabla en HTML
+tabla_3 %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 3. Distribución de estudiantes según municipio de residencia",
+    align = c("l", "r", "r")
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020).",
+      "Se presentan los diez municipios con mayor frecuencia;",
+      "los restantes se agrupan en la categoría Otros."
+    ),
+    general_title = ""
+  )
+```
+
+
+
+
+## 3.3 Distribución individual de las variables
+
+### 3.3.1 Distribución de estudiantes según el percentil 25
+
+```{r figura-1, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar datos
+datos_percentil <- icfes_limpia %>%
+  mutate(
+    Clasificacion = case_when(
+      as.character(SUPERA_P25) %in% c("0", "No supera P25") ~ "No supera P25",
+      as.character(SUPERA_P25) %in% c("1", "Supera P25") ~ "Supera P25",
+      TRUE ~ as.character(SUPERA_P25)
+    )
+  ) %>%
+  count(Clasificacion, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  )
+
+# Ordenar categorias
+datos_percentil$Clasificacion <- factor(
+  datos_percentil$Clasificacion,
+  levels = c("No supera P25", "Supera P25")
+)
+
+# Crear grafica interactiva
+figura_1 <- plot_ly(
+  data = datos_percentil,
+  x = ~Clasificacion,
+  y = ~Porcentaje,
+  type = "bar",
+  marker = list(color = "gray40"),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  customdata = ~Frecuencia,
+  hovertemplate = paste0(
+    "<b>%{x}</b>",
+    "<br>Porcentaje: %{y}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 1. Distribución de estudiantes según el percentil 25",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Clasificación del estudiante"
+    ),
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 100)
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 70,
+      r = 40,
+      b = 80,
+      t = 90
+    )
+  )
+
+# Mostrar grafica en el HTML
+figura_1
+
+```
+
+
+
+
+
+
+
+### 3.3.2 Distribución de estudiantes según género
+
+```{r figura-2, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos depurada
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar los datos
+datos_genero <- icfes_limpia %>%
+  mutate(
+    Genero = case_when(
+      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+        c("F", "FEMENINO") ~ "Femenino",
+      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+        c("M", "MASCULINO") ~ "Masculino",
+      TRUE ~ as.character(ESTU_GENERO)
+    )
+  ) %>%
+  count(Genero, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  )
+
+# Ordenar categorias
+datos_genero <- datos_genero %>%
+  arrange(factor(Genero, levels = c("Femenino", "Masculino")))
+
+# Crear grafica de dona interactiva
+figura_2 <- plot_ly(
+  data = datos_genero,
+  labels = ~Genero,
+  values = ~Frecuencia,
+  type = "pie",
+  hole = 0.55,
+  sort = FALSE,
+  marker = list(
+    colors = c("gray40", "gray70"),
+    line = list(color = "white", width = 2)
+  ),
+  textinfo = "label+percent",
+  textposition = "outside",
+  hovertemplate = paste0(
+    "<b>%{label}</b>",
+    "<br>Estudiantes: %{value}",
+    "<br>Porcentaje: %{percent}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 2. Distribución de estudiantes según género",
+      x = 0.5
+    ),
+    annotations = list(
+      list(
+        text = "Género",
+        x = 0.5,
+        y = 0.5,
+        font = list(size = 20, color = "gray30"),
+        showarrow = FALSE
+      )
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 100,
+      r = 100,
+      b = 60,
+      t = 100
+    )
+  )
+
+# Mostrar grafica interactiva en el HTML
+figura_2
+
+```
+
+
+
+
+
+### 3.3.3 Distribución de estudiantes según estrato socioeconómico
+
+```{r figura-3, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- read.csv(
+  "ICFES_DEPURADA.csv",
+  stringsAsFactors = FALSE,
+  fileEncoding = "UTF-8"
+)
+
+# Preparar datos
+datos_estrato <- icfes_limpia %>%
+  count(FAMI_ESTRATOVIVIENDA) %>%
+  mutate(
+    Categoria = as.character(FAMI_ESTRATOVIVIENDA),
+    Porcentaje = round(n / sum(n) * 100, 1)
+  )
+
+# Ordenar estratos
+orden_estratos <- c(
+  "Estrato 1",
+  "Estrato 2",
+  "Estrato 3",
+  "Estrato 4",
+  "Estrato 5",
+  "Estrato 6",
+  "Sin Estrato"
+)
+
+datos_estrato <- datos_estrato %>%
+  mutate(
+    Categoria = factor(
+      Categoria,
+      levels = orden_estratos
+    )
+  ) %>%
+  arrange(Categoria)
+
+# Crear grafico interactivo
+figura_3 <- plot_ly(
+  data = datos_estrato,
+  x = ~Porcentaje,
+  y = ~Categoria,
+  type = "bar",
+  orientation = "h",
+  marker = list(color = "gray55"),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  customdata = ~n,
+  hovertemplate = paste0(
+    "<b>%{y}</b>",
+    "<br>Porcentaje: %{x}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 3. Distribucion de estudiantes segun estrato socioeconomico",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      rangemode = "tozero"
+    ),
+    yaxis = list(
+      title = "Estrato socioeconomico",
+      autorange = "reversed"
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 110,
+      r = 80,
+      b = 70,
+      t = 90
+    )
+  )
+
+# Mostrar grafico
+figura_3
 ```
 
