@@ -443,3 +443,83 @@ saveRDS(figura_3, "figura_3.rds")
 icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
 names(icfes_limpia)
+
+
+
+
+
+
+# FIGURA 5. DISPONIBILIDAD DE COMPUTADOR
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar datos
+datos_computador <- icfes_limpia %>%
+  mutate(
+    Computador = case_when(
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("SI", "SÍ") ~ "Sí tiene computador",
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) == "NO" ~
+        "No tiene computador",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Computador)) %>%
+  count(Computador, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  )
+
+# Crear gráfico interactivo
+figura_5 <- plot_ly(
+  data = datos_computador,
+  x = ~Porcentaje,
+  y = ~"Estudiantes",
+  color = ~Computador,
+  colors = c("gray35", "gray70"),
+  type = "bar",
+  orientation = "h",
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "inside",
+  insidetextanchor = "middle",
+  customdata = ~Frecuencia,
+  hovertemplate = paste0(
+    "<b>%{fullData.name}</b>",
+    "<br>Porcentaje: %{x:.1f}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 5. Distribución de estudiantes según disponibilidad de computador",
+      x = 0.5
+    ),
+    barmode = "stack",
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 100)
+    ),
+    yaxis = list(title = ""),
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.3
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    margin = list(
+      l = 80,
+      r = 60,
+      b = 110,
+      t = 100
+    )
+  )
+
+# Visualizar
+figura_5

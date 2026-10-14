@@ -503,3 +503,168 @@ figura_3 <- plot_ly(
 figura_3
 ```
 
+
+
+
+
+### 3.3.4 Distribución de estudiantes según acceso a internet
+
+```{r figura-4, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar datos
+datos_internet <- icfes_limpia %>%
+  mutate(
+    Internet = case_when(
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
+        c("SI", "SÍ") ~ "Sí tiene internet",
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) == "NO" ~
+        "No tiene internet",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Internet)) %>%
+  count(Internet, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  ) %>%
+  arrange(Porcentaje)
+
+# Crear gráfico interactivo
+figura_4 <- plot_ly(
+  data = datos_internet,
+  x = ~Porcentaje,
+  y = ~Internet,
+  type = "bar",
+  orientation = "h",
+  marker = list(
+    color = c("gray65", "gray35"),
+    line = list(color = "white", width = 1)
+  ),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  hovertemplate = paste0(
+    "<b>%{y}</b>",
+    "<br>Porcentaje: %{x:.1f}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  ),
+  customdata = ~Frecuencia
+) %>%
+  layout(
+    title = list(
+      text = "Figura 4. Distribución de estudiantes según acceso a internet",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 110)
+    ),
+    yaxis = list(
+      title = "",
+      categoryorder = "array",
+      categoryarray = datos_internet$Internet
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 150,
+      r = 70,
+      b = 80,
+      t = 100
+    )
+  )
+
+# Mostrar gráfico en HTML
+figura_4
+
+```
+
+
+
+
+### 3.3.5 Distribución de estudiantes según disponibilidad de computador
+
+```{r figura-5, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Organizar información
+datos_computador <- icfes_limpia %>%
+  mutate(
+    Computador = case_when(
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("SI", "SÍ") ~ "Sí tiene computador",
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) == "NO" ~
+        "No tiene computador",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Computador)) %>%
+  count(Computador, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = Frecuencia / sum(Frecuencia) * 100
+  )
+
+# Construir figura interactiva
+figura_5 <- plot_ly(
+  data = datos_computador,
+  x = ~Porcentaje,
+  y = ~"Estudiantes",
+  color = ~Computador,
+  colors = c("gray35", "gray70"),
+  type = "bar",
+  orientation = "h",
+  text = ~paste0(round(Porcentaje, 1), "%"),
+  textposition = "inside",
+  insidetextanchor = "middle",
+  customdata = ~Frecuencia,
+  hovertemplate = paste0(
+    "<b>%{fullData.name}</b>",
+    "<br>Porcentaje: %{x:.1f}%",
+    "<br>Número de estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 5. Distribución de estudiantes según disponibilidad de computador",
+      x = 0.5
+    ),
+    barmode = "stack",
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 100)
+    ),
+    yaxis = list(title = ""),
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.3
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    margin = list(
+      l = 80,
+      r = 60,
+      b = 110,
+      t = 100
+    )
+  )
+
+# Mostrar figura
+figura_5
+
+```
+
