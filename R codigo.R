@@ -8,7 +8,7 @@ library(tidyr)
 library(stringr)
 
 # Importar base de datos
-icfes <- read_excel(file.choose())
+icfes <- read_excel("ICFES.xlsx")
 
 # Visualizar los primeros registros
 head(icfes)
@@ -62,7 +62,7 @@ dim(icfes_limpia)
 # Crear variable dependiente binaria
 icfes_limpia <- icfes_limpia %>%
   mutate(
-    SUPERA_P25 = ifelse(PERCENTIL_GLOBAL > 25, 1, 0)
+    SUPERA_P25 = ifelse(PERCENTIL_GLOBAL > 75, 1, 0)
   )
 
 # Revisar distribución
