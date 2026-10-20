@@ -33,6 +33,8 @@ De esta manera, el estudio busca no solo evaluar la capacidad predictiva de los 
 
 # 2 Metodologia
 
+# HACER MAPA
+
 ```{r Tabla de variables}
 
 library(knitr)
@@ -252,7 +254,130 @@ tabla_3 %>%
 
 ### 3.3.1 Distribución de estudiantes según el percentil 25
 
-```{r figura-1, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r tabla percentil 25 tabla-4, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variable binaria
+datos_tabla4 <- icfes_limpia %>%
+  mutate(
+    Clasificacion = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Clasificacion))
+
+# Calcular frecuencias y porcentajes
+tabla_4 <- datos_tabla4 %>%
+  count(Clasificacion, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(
+      100 * Frecuencia / sum(Frecuencia), 1
+    ),
+    Clasificacion = factor(
+      Clasificacion,
+      levels = c("No supera P25", "Supera P25")
+    )
+  ) %>%
+  arrange(Clasificacion) %>%
+  mutate(
+    Clasificacion = as.character(Clasificacion)
+  )
+
+# Agregar fila de total
+tabla_4 <- bind_rows(
+  tabla_4,
+  data.frame(
+    Clasificacion = "Total",
+    Frecuencia = sum(tabla_4$Frecuencia),
+    Porcentaje = 100
+  )
+)
+
+# Formato de frecuencias y porcentajes
+tabla_4 <- tabla_4 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    Porcentaje = paste0(
+      formatC(
+        Porcentaje,
+        format = "f",
+        digits = 1,
+        decimal.mark = ","
+      ),
+      "%"
+    )
+  )
+
+# Mostrar Tabla 4 en HTML
+tabla_4 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 4. Análisis descriptivo de la clasificación del percentil 25",
+    col.names = c(
+      "Clasificación",
+      "Frecuencia (n)",
+      "Porcentaje (%)"
+    ),
+    align = c("l", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_4),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes se calcularon sobre el total",
+      "de estudiantes con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+```{r Grafica percentil 25 figura-1, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(dplyr)
 library(plotly)
@@ -260,67 +385,172 @@ library(plotly)
 # Cargar base de datos
 icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
-# Preparar datos
-datos_percentil <- icfes_limpia %>%
+# Preparar datos de la Figura 1
+datos_figura1 <- icfes_limpia %>%
   mutate(
-    Clasificacion = case_when(
-      as.character(SUPERA_P25) %in% c("0", "No supera P25") ~ "No supera P25",
-      as.character(SUPERA_P25) %in% c("1", "Supera P25") ~ "Supera P25",
-      TRUE ~ as.character(SUPERA_P25)
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
     )
   ) %>%
-  count(Clasificacion, name = "Frecuencia") %>%
+  filter(!is.na(Percentil)) %>%
+  count(Percentil, name = "Frecuencia") %>%
   mutate(
-    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia),
+    Percentil = factor(
+      Percentil,
+      levels = c("No supera P25", "Supera P25")
+    )
+  ) %>%
+  arrange(Percentil)
+
+# Crear figura interactiva
+figura_1 <- plot_ly()
+
+# Vista 1: gráfico de dona
+figura_1 <- figura_1 %>%
+  add_pie(
+    data = datos_figura1,
+    labels = ~Percentil,
+    values = ~Frecuencia,
+    hole = 0.55,
+    textinfo = "label+percent",
+    textposition = "outside",
+    marker = list(
+      colors = c("#BDBDBD", "#555555")
+    ),
+    hovertemplate = paste0(
+      "<b>%{label}</b>",
+      "<br>Estudiantes: %{value}",
+      "<br>Porcentaje: %{percent}",
+      "<extra></extra>"
+    ),
+    domain = list(
+      x = c(0.15, 0.85),
+      y = c(0.05, 0.95)
+    ),
+    showlegend = FALSE,
+    visible = TRUE
   )
 
-# Ordenar categorias
-datos_percentil$Clasificacion <- factor(
-  datos_percentil$Clasificacion,
-  levels = c("No supera P25", "Supera P25")
-)
-
-# Crear grafica interactiva
-figura_1 <- plot_ly(
-  data = datos_percentil,
-  x = ~Clasificacion,
-  y = ~Porcentaje,
-  type = "bar",
-  marker = list(color = "gray40"),
-  text = ~paste0(Porcentaje, "%"),
-  textposition = "outside",
-  customdata = ~Frecuencia,
-  hovertemplate = paste0(
-    "<b>%{x}</b>",
-    "<br>Porcentaje: %{y}%",
-    "<br>Estudiantes: %{customdata}",
-    "<extra></extra>"
+# Vista 2: gráfico de barras
+figura_1 <- figura_1 %>%
+  add_bars(
+    data = datos_figura1,
+    x = ~Percentil,
+    y = ~Porcentaje,
+    name = "Porcentaje",
+    marker = list(
+      color = c("#BDBDBD", "#555555")
+    ),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE,
+    showlegend = FALSE
   )
-) %>%
+
+# Diseño y botones interactivos
+figura_1 <- figura_1 %>%
   layout(
     title = list(
       text = "Figura 1. Distribución de estudiantes según el percentil 25",
       x = 0.5
     ),
+
     xaxis = list(
-      title = "Clasificación del estudiante"
+      title = "Clasificación del percentil 25",
+      visible = FALSE
     ),
+
     yaxis = list(
       title = "Porcentaje de estudiantes (%)",
-      range = c(0, 100)
+      range = c(0, 100),
+      visible = FALSE
     ),
+
     plot_bgcolor = "white",
     paper_bgcolor = "white",
-    showlegend = FALSE,
+
     margin = list(
-      l = 70,
-      r = 40,
-      b = 80,
-      t = 90
+      l = 90,
+      r = 90,
+      b = 160,
+      t = 100
+    ),
+
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Gráfico circular",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 1. Distribución de estudiantes según el percentil 25",
+                  x = 0.5
+                ),
+                xaxis = list(visible = FALSE),
+                yaxis = list(visible = FALSE),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Gráfico de barras",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 1. Distribución de estudiantes según el percentil 25",
+                  x = 0.5
+                ),
+                xaxis = list(
+                  title = "Clasificación del percentil 25",
+                  visible = TRUE
+                ),
+                yaxis = list(
+                  title = "Porcentaje de estudiantes (%)",
+                  range = c(0, 100),
+                  visible = TRUE
+                ),
+                showlegend = FALSE
+              )
+            )
+          )
+
+        )
+      )
     )
   )
 
-# Mostrar grafica en el HTML
+# Mostrar Figura 1 en HTML
 figura_1
 
 ```
@@ -331,83 +561,407 @@ figura_1
 
 
 
+
+
+
+
 ### 3.3.2 Distribución de estudiantes según género
 
-```{r figura-2, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r Tabla de genero tabla-5, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_tabla5 <- icfes_limpia %>%
+  mutate(
+    Genero = case_when(
+      toupper(trimws(as.character(ESTU_GENERO))) %in%
+        c("F", "FEMENINO", "MUJER") ~ "Femenino",
+      toupper(trimws(as.character(ESTU_GENERO))) %in%
+        c("M", "MASCULINO", "HOMBRE") ~ "Masculino",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Genero), !is.na(Percentil))
+
+# Calcular frecuencias y porcentajes por género
+distribucion_genero <- datos_tabla5 %>%
+  count(Genero, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  )
+
+# Calcular porcentajes de clasificación dentro de cada género
+clasificacion_genero <- datos_tabla5 %>%
+  count(Genero, Percentil, name = "n") %>%
+  group_by(Genero) %>%
+  mutate(
+    Porcentaje = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  select(Genero, Percentil, Porcentaje) %>%
+  pivot_wider(
+    names_from = Percentil,
+    values_from = Porcentaje,
+    values_fill = 0
+  )
+
+# Unir resultados
+tabla_5 <- distribucion_genero %>%
+  left_join(clasificacion_genero, by = "Genero") %>%
+  mutate(
+    Genero = factor(
+      Genero,
+      levels = c("Femenino", "Masculino")
+    )
+  ) %>%
+  arrange(Genero) %>%
+  mutate(
+    Genero = as.character(Genero)
+  )
+
+# Agregar fila de total
+total_tabla5 <- data.frame(
+  Genero = "Total",
+  Frecuencia = nrow(datos_tabla5),
+  Porcentaje = 100,
+  `Supera P25` = 100 * sum(datos_tabla5$Percentil == "Supera P25") /
+    nrow(datos_tabla5),
+  `No supera P25` = 100 * sum(datos_tabla5$Percentil == "No supera P25") /
+    nrow(datos_tabla5),
+  check.names = FALSE
+)
+
+tabla_5 <- bind_rows(tabla_5, total_tabla5)
+
+# Dar formato a los resultados
+tabla_5 <- tabla_5 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    across(
+      c(Porcentaje, `Supera P25`, `No supera P25`),
+      ~paste0(
+        formatC(
+          .x,
+          format = "f",
+          digits = 1,
+          decimal.mark = ","
+        ),
+        "%"
+      )
+    )
+  ) %>%
+  select(
+    Genero,
+    Frecuencia,
+    Porcentaje,
+    `Supera P25`,
+    `No supera P25`
+  )
+
+# Mostrar Tabla 5 en HTML
+tabla_5 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 5. Análisis descriptivo de la variable género",
+    col.names = c(
+      "Género",
+      "Frecuencia (n)",
+      "Porcentaje (%)",
+      "Supera P25 (%)",
+      "No supera P25 (%)"
+    ),
+    align = c("l", "c", "c", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_5),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes de clasificación según P25",
+      "se calcularon dentro de cada género.",
+      "Se incluyeron únicamente los registros con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r Grafica de genero figura-2, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(dplyr)
 library(plotly)
 
-# Cargar base de datos depurada
+# Cargar base de datos
 icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
-# Preparar los datos
-datos_genero <- icfes_limpia %>%
+# Preparar variables
+datos_figura2 <- icfes_limpia %>%
   mutate(
     Genero = case_when(
-      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+      toupper(trimws(as.character(ESTU_GENERO))) %in%
         c("F", "FEMENINO") ~ "Femenino",
-      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+      toupper(trimws(as.character(ESTU_GENERO))) %in%
         c("M", "MASCULINO") ~ "Masculino",
-      TRUE ~ as.character(ESTU_GENERO)
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
     )
   ) %>%
+  filter(!is.na(Genero))
+
+# Distribución general por género
+general <- datos_figura2 %>%
   count(Genero, name = "Frecuencia") %>%
   mutate(
-    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
   )
 
-# Ordenar categorias
-datos_genero <- datos_genero %>%
-  arrange(factor(Genero, levels = c("Femenino", "Masculino")))
+# Distribución según variable binaria
+comparacion <- datos_figura2 %>%
+  filter(!is.na(Percentil)) %>%
+  count(Genero, Percentil, name = "Frecuencia") %>%
+  group_by(Genero) %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  ) %>%
+  ungroup()
 
-# Crear grafica de dona interactiva
-figura_2 <- plot_ly(
-  data = datos_genero,
-  labels = ~Genero,
-  values = ~Frecuencia,
-  type = "pie",
-  hole = 0.55,
-  sort = FALSE,
-  marker = list(
-    colors = c("gray40", "gray70"),
-    line = list(color = "white", width = 2)
-  ),
-  textinfo = "label+percent",
-  textposition = "outside",
-  hovertemplate = paste0(
-    "<b>%{label}</b>",
-    "<br>Estudiantes: %{value}",
-    "<br>Porcentaje: %{percent}",
-    "<extra></extra>"
+# Orden de categorías
+generos <- c("Femenino", "Masculino")
+
+general <- general %>%
+  mutate(Genero = factor(Genero, levels = generos))
+
+comparacion <- comparacion %>%
+  mutate(Genero = factor(Genero, levels = generos))
+
+datos_supera <- comparacion %>%
+  filter(Percentil == "Supera P25")
+
+datos_no_supera <- comparacion %>%
+  filter(Percentil == "No supera P25")
+
+# Crear Figura 2
+figura_2 <- plot_ly()
+
+# Vista 1: distribución general
+figura_2 <- figura_2 %>%
+  add_bars(
+    data = general,
+    x = ~Genero,
+    y = ~Porcentaje,
+    name = "Distribución general",
+    marker = list(
+      color = c("#666666", "#BDBDBD")
+    ),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = TRUE,
+    showlegend = FALSE
   )
-) %>%
+
+# Vista 2: supera percentil 25
+figura_2 <- figura_2 %>%
+  add_bars(
+    data = datos_supera,
+    x = ~Genero,
+    y = ~Porcentaje,
+    name = "Supera P25",
+    marker = list(color = "#555555"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: Supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Vista 2: no supera percentil 25
+figura_2 <- figura_2 %>%
+  add_bars(
+    data = datos_no_supera,
+    x = ~Genero,
+    y = ~Porcentaje,
+    name = "No supera P25",
+    marker = list(color = "#BDBDBD"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: No supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Diseño de la Figura 2
+figura_2 <- figura_2 %>%
   layout(
+
     title = list(
       text = "Figura 2. Distribución de estudiantes según género",
       x = 0.5
     ),
-    annotations = list(
-      list(
-        text = "Género",
-        x = 0.5,
-        y = 0.5,
-        font = list(size = 20, color = "gray30"),
-        showarrow = FALSE
-      )
+
+    xaxis = list(
+      title = "Género",
+      categoryorder = "array",
+      categoryarray = generos
     ),
+
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 105),
+      ticksuffix = "%"
+    ),
+
+    barmode = "group",
+
     plot_bgcolor = "white",
     paper_bgcolor = "white",
-    showlegend = FALSE,
+
     margin = list(
-      l = 100,
-      r = 100,
-      b = 60,
+      l = 80,
+      r = 70,
+      b = 170,
       t = 100
+    ),
+
+    # Botones debajo de la gráfica
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Distribución por género",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 2. Distribución de estudiantes según género",
+                  x = 0.5
+                ),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Según variable binaria",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 2. Género y clasificación del percentil 25",
+                  x = 0.5
+                ),
+                showlegend = TRUE
+              )
+            )
+          )
+
+        )
+      )
+    ),
+
+    showlegend = FALSE,
+
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.10,
+      yanchor = "top"
     )
   )
 
-# Mostrar grafica interactiva en el HTML
+# Mostrar Figura 2 en HTML
 figura_2
 
 ```
@@ -416,92 +970,448 @@ figura_2
 
 
 
+
+
 ### 3.3.3 Distribución de estudiantes según estrato socioeconómico
 
-```{r figura-3, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Tabla estrato socioeconomico tabla-6, echo=FALSE, message=FALSE, warning=FALSE}
+
 library(dplyr)
-library(plotly)
+library(knitr)
+library(kableExtra)
+library(tidyr)
 
 # Cargar base de datos
-icfes_limpia <- read.csv(
-  "ICFES_DEPURADA.csv",
-  stringsAsFactors = FALSE,
-  fileEncoding = "UTF-8"
-)
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
-# Preparar datos
-datos_estrato <- icfes_limpia %>%
-  count(FAMI_ESTRATOVIVIENDA) %>%
+# Preparar variables
+datos_tabla6 <- icfes_limpia %>%
   mutate(
-    Categoria = as.character(FAMI_ESTRATOVIVIENDA),
-    Porcentaje = round(n / sum(n) * 100, 1)
-  )
+    Estrato = case_when(
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("1", "Estrato 1", "ESTRATO 1") ~ "Estrato 1",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("2", "Estrato 2", "ESTRATO 2") ~ "Estrato 2",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("3", "Estrato 3", "ESTRATO 3") ~ "Estrato 3",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("4", "Estrato 4", "ESTRATO 4") ~ "Estrato 4",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("5", "Estrato 5", "ESTRATO 5") ~ "Estrato 5",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("6", "Estrato 6", "ESTRATO 6") ~ "Estrato 6",
+      toupper(trimws(as.character(FAMI_ESTRATOVIVIENDA))) %in%
+        c("SIN ESTRATO", "NO TIENE ESTRATO", "0") ~ "Sin estrato",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Estrato), !is.na(Percentil))
 
-# Ordenar estratos
+# Orden de los estratos
 orden_estratos <- c(
+  "Sin estrato",
   "Estrato 1",
   "Estrato 2",
   "Estrato 3",
   "Estrato 4",
   "Estrato 5",
-  "Estrato 6",
-  "Sin Estrato"
+  "Estrato 6"
 )
 
-datos_estrato <- datos_estrato %>%
+# Calcular frecuencias y porcentajes por estrato
+distribucion_estrato <- datos_tabla6 %>%
+  count(Estrato, name = "Frecuencia") %>%
   mutate(
-    Categoria = factor(
-      Categoria,
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  )
+
+# Calcular clasificación P25 dentro de cada estrato
+clasificacion_estrato <- datos_tabla6 %>%
+  count(Estrato, Percentil, name = "n") %>%
+  group_by(Estrato) %>%
+  mutate(
+    Porcentaje = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  select(Estrato, Percentil, Porcentaje) %>%
+  pivot_wider(
+    names_from = Percentil,
+    values_from = Porcentaje,
+    values_fill = 0
+  )
+
+# Unir resultados
+tabla_6 <- distribucion_estrato %>%
+  left_join(clasificacion_estrato, by = "Estrato") %>%
+  mutate(
+    Estrato = factor(
+      Estrato,
       levels = orden_estratos
     )
   ) %>%
-  arrange(Categoria)
-
-# Crear grafico interactivo
-figura_3 <- plot_ly(
-  data = datos_estrato,
-  x = ~Porcentaje,
-  y = ~Categoria,
-  type = "bar",
-  orientation = "h",
-  marker = list(color = "gray55"),
-  text = ~paste0(Porcentaje, "%"),
-  textposition = "outside",
-  customdata = ~n,
-  hovertemplate = paste0(
-    "<b>%{y}</b>",
-    "<br>Porcentaje: %{x}%",
-    "<br>Estudiantes: %{customdata}",
-    "<extra></extra>"
+  arrange(Estrato) %>%
+  mutate(
+    Estrato = as.character(Estrato)
   )
-) %>%
+
+# Agregar fila de total
+total_tabla6 <- data.frame(
+  Estrato = "Total",
+  Frecuencia = nrow(datos_tabla6),
+  Porcentaje = 100,
+  `Supera P25` = 100 *
+    sum(datos_tabla6$Percentil == "Supera P25") /
+    nrow(datos_tabla6),
+  `No supera P25` = 100 *
+    sum(datos_tabla6$Percentil == "No supera P25") /
+    nrow(datos_tabla6),
+  check.names = FALSE
+)
+
+tabla_6 <- bind_rows(tabla_6, total_tabla6)
+
+# Dar formato a frecuencias y porcentajes
+tabla_6 <- tabla_6 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    across(
+      c(Porcentaje, `Supera P25`, `No supera P25`),
+      ~paste0(
+        formatC(
+          .x,
+          format = "f",
+          digits = 1,
+          decimal.mark = ","
+        ),
+        "%"
+      )
+    )
+  ) %>%
+  select(
+    Estrato,
+    Frecuencia,
+    Porcentaje,
+    `Supera P25`,
+    `No supera P25`
+  )
+
+# Mostrar Tabla 6 en HTML
+tabla_6 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 6. Análisis descriptivo de la variable estrato socioeconómico",
+    col.names = c(
+      "Estrato socioeconómico",
+      "Frecuencia (n)",
+      "Porcentaje (%)",
+      "Supera P25 (%)",
+      "No supera P25 (%)"
+    ),
+    align = c("l", "c", "c", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_6),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes de clasificación según P25",
+      "se calcularon dentro de cada estrato socioeconómico.",
+      "Se incluyeron únicamente los registros con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r Grafica estrato socioeconomico figura-3, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_figura3 <- icfes_limpia %>%
+  mutate(
+    Estrato = case_when(
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("1", "Estrato 1", "ESTRATO 1") ~ "Estrato 1",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("2", "Estrato 2", "ESTRATO 2") ~ "Estrato 2",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("3", "Estrato 3", "ESTRATO 3") ~ "Estrato 3",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("4", "Estrato 4", "ESTRATO 4") ~ "Estrato 4",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("5", "Estrato 5", "ESTRATO 5") ~ "Estrato 5",
+      trimws(as.character(FAMI_ESTRATOVIVIENDA)) %in%
+        c("6", "Estrato 6", "ESTRATO 6") ~ "Estrato 6",
+      toupper(trimws(as.character(FAMI_ESTRATOVIVIENDA))) %in%
+        c("SIN ESTRATO", "NO TIENE ESTRATO", "0") ~ "Sin estrato",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Estrato))
+
+# Orden de los estratos
+estratos <- c(
+  "Sin estrato",
+  "Estrato 1",
+  "Estrato 2",
+  "Estrato 3",
+  "Estrato 4",
+  "Estrato 5",
+  "Estrato 6"
+)
+
+# Distribución general
+general <- datos_figura3 %>%
+  count(Estrato, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia),
+    Estrato = factor(Estrato, levels = estratos)
+  ) %>%
+  arrange(Estrato)
+
+# Distribución según variable binaria
+comparacion <- datos_figura3 %>%
+  filter(!is.na(Percentil)) %>%
+  count(Estrato, Percentil, name = "Frecuencia") %>%
+  group_by(Estrato) %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    Estrato = factor(Estrato, levels = estratos)
+  )
+
+# Separar las categorías de la variable binaria
+datos_supera <- comparacion %>%
+  filter(Percentil == "Supera P25")
+
+datos_no_supera <- comparacion %>%
+  filter(Percentil == "No supera P25")
+
+# Crear Figura 3
+figura_3 <- plot_ly()
+
+# Vista 1: distribución general por estrato
+figura_3 <- figura_3 %>%
+  add_bars(
+    data = general,
+    x = ~Estrato,
+    y = ~Porcentaje,
+    name = "Distribución general",
+    marker = list(color = "#666666"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = TRUE,
+    showlegend = FALSE
+  )
+
+# Vista 2: estudiantes que superan P25
+figura_3 <- figura_3 %>%
+  add_bars(
+    data = datos_supera,
+    x = ~Estrato,
+    y = ~Porcentaje,
+    name = "Supera P25",
+    marker = list(color = "#555555"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: Supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Vista 2: estudiantes que no superan P25
+figura_3 <- figura_3 %>%
+  add_bars(
+    data = datos_no_supera,
+    x = ~Estrato,
+    y = ~Porcentaje,
+    name = "No supera P25",
+    marker = list(color = "#BDBDBD"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: No supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Diseño de la Figura 3
+figura_3 <- figura_3 %>%
   layout(
+
     title = list(
-      text = "Figura 3. Distribucion de estudiantes segun estrato socioeconomico",
+      text = "Figura 3. Distribución de estudiantes según estrato socioeconómico",
       x = 0.5
     ),
+
     xaxis = list(
-      title = "Porcentaje de estudiantes (%)",
-      rangemode = "tozero"
+      title = "Estrato socioeconómico",
+      categoryorder = "array",
+      categoryarray = estratos,
+      tickangle = -30
     ),
+
     yaxis = list(
-      title = "Estrato socioeconomico",
-      autorange = "reversed"
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 105),
+      ticksuffix = "%"
     ),
+
+    barmode = "group",
+
     plot_bgcolor = "white",
     paper_bgcolor = "white",
-    showlegend = FALSE,
+
     margin = list(
-      l = 110,
-      r = 80,
-      b = 70,
-      t = 90
+      l = 80,
+      r = 70,
+      b = 190,
+      t = 100
+    ),
+
+    # Botones debajo de la gráfica
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Distribución por estrato",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 3. Distribución de estudiantes según estrato socioeconómico",
+                  x = 0.5
+                ),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Según variable binaria",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 3. Estrato socioeconómico y clasificación del percentil 25",
+                  x = 0.5
+                ),
+                showlegend = TRUE
+              )
+            )
+          )
+
+        )
+      )
+    ),
+
+    showlegend = FALSE,
+
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.10,
+      yanchor = "top"
     )
   )
 
-# Mostrar grafico
+# Mostrar Figura 3 en HTML
 figura_3
+
 ```
+
 
 
 
@@ -509,7 +1419,185 @@ figura_3
 
 ### 3.3.4 Distribución de estudiantes según acceso a internet
 
-```{r figura-4, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r Tabla acceso a internet tabla-7, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_tabla7 <- icfes_limpia %>%
+  mutate(
+    Internet = case_when(
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
+        c("SI", "SÍ", "1", "TRUE") ~ "Sí tiene internet",
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
+        c("NO", "0", "FALSE") ~ "No tiene internet",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Internet), !is.na(Percentil))
+
+# Orden de categorías
+orden_internet <- c(
+  "No tiene internet",
+  "Sí tiene internet"
+)
+
+# Calcular frecuencias y porcentajes
+distribucion_internet <- datos_tabla7 %>%
+  count(Internet, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  )
+
+# Calcular clasificación P25 dentro de cada categoría
+clasificacion_internet <- datos_tabla7 %>%
+  count(Internet, Percentil, name = "n") %>%
+  group_by(Internet) %>%
+  mutate(
+    Porcentaje = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  select(Internet, Percentil, Porcentaje) %>%
+  pivot_wider(
+    names_from = Percentil,
+    values_from = Porcentaje,
+    values_fill = 0
+  )
+
+# Unir resultados
+tabla_7 <- distribucion_internet %>%
+  left_join(clasificacion_internet, by = "Internet") %>%
+  mutate(
+    Internet = factor(
+      Internet,
+      levels = orden_internet
+    )
+  ) %>%
+  arrange(Internet) %>%
+  mutate(
+    Internet = as.character(Internet)
+  )
+
+# Agregar fila de total
+total_tabla7 <- data.frame(
+  Internet = "Total",
+  Frecuencia = nrow(datos_tabla7),
+  Porcentaje = 100,
+  `Supera P25` = 100 *
+    sum(datos_tabla7$Percentil == "Supera P25") /
+    nrow(datos_tabla7),
+  `No supera P25` = 100 *
+    sum(datos_tabla7$Percentil == "No supera P25") /
+    nrow(datos_tabla7),
+  check.names = FALSE
+)
+
+tabla_7 <- bind_rows(tabla_7, total_tabla7)
+
+# Dar formato a frecuencias y porcentajes
+tabla_7 <- tabla_7 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    across(
+      c(Porcentaje, `Supera P25`, `No supera P25`),
+      ~paste0(
+        formatC(
+          .x,
+          format = "f",
+          digits = 1,
+          decimal.mark = ","
+        ),
+        "%"
+      )
+    )
+  ) %>%
+  select(
+    Internet,
+    Frecuencia,
+    Porcentaje,
+    `Supera P25`,
+    `No supera P25`
+  )
+
+# Mostrar Tabla 7 en HTML
+tabla_7 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 7. Análisis descriptivo de la variable acceso a internet",
+    col.names = c(
+      "Acceso a internet",
+      "Frecuencia (n)",
+      "Porcentaje (%)",
+      "Supera P25 (%)",
+      "No supera P25 (%)"
+    ),
+    align = c("l", "c", "c", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_7),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes de clasificación según P25",
+      "se calcularon dentro de cada categoría de acceso a internet.",
+      "Se incluyeron únicamente los registros con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r Grafica de acceso a internet figura-4, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(dplyr)
 library(plotly)
@@ -517,71 +1605,244 @@ library(plotly)
 # Cargar base de datos
 icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
-# Preparar datos
-datos_internet <- icfes_limpia %>%
+# Preparar variables
+datos_figura4 <- icfes_limpia %>%
   mutate(
     Internet = case_when(
       toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
-        c("SI", "SÍ") ~ "Sí tiene internet",
-      toupper(trimws(as.character(FAMI_TIENEINTERNET))) == "NO" ~
-        "No tiene internet",
+        c("SI", "SÍ", "1", "TRUE") ~ "Sí tiene internet",
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
+        c("NO", "0", "FALSE") ~ "No tiene internet",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
       TRUE ~ NA_character_
     )
   ) %>%
-  filter(!is.na(Internet)) %>%
+  filter(!is.na(Internet))
+
+# Orden de categorías
+categorias_internet <- c(
+  "No tiene internet",
+  "Sí tiene internet"
+)
+
+# Distribución general
+general <- datos_figura4 %>%
   count(Internet, name = "Frecuencia") %>%
   mutate(
-    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia),
+    Internet = factor(Internet, levels = categorias_internet)
   ) %>%
-  arrange(Porcentaje)
+  arrange(Internet)
 
-# Crear gráfico interactivo
-figura_4 <- plot_ly(
-  data = datos_internet,
-  x = ~Porcentaje,
-  y = ~Internet,
-  type = "bar",
-  orientation = "h",
-  marker = list(
-    color = c("gray65", "gray35"),
-    line = list(color = "white", width = 1)
-  ),
-  text = ~paste0(Porcentaje, "%"),
-  textposition = "outside",
-  hovertemplate = paste0(
-    "<b>%{y}</b>",
-    "<br>Porcentaje: %{x:.1f}%",
-    "<br>Estudiantes: %{customdata}",
-    "<extra></extra>"
-  ),
-  customdata = ~Frecuencia
-) %>%
+# Distribución según variable binaria
+comparacion <- datos_figura4 %>%
+  filter(!is.na(Percentil)) %>%
+  count(Internet, Percentil, name = "Frecuencia") %>%
+  group_by(Internet) %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    Internet = factor(Internet, levels = categorias_internet)
+  )
+
+# Separar categorías
+datos_supera <- comparacion %>%
+  filter(Percentil == "Supera P25")
+
+datos_no_supera <- comparacion %>%
+  filter(Percentil == "No supera P25")
+
+# Crear Figura 4
+figura_4 <- plot_ly()
+
+# Vista 1: gráfico de pastel
+figura_4 <- figura_4 %>%
+  add_pie(
+    data = general,
+    labels = ~Internet,
+    values = ~Frecuencia,
+    hole = 0,
+    textinfo = "label+percent",
+    textposition = "outside",
+    marker = list(
+      colors = c("#BDBDBD", "#555555")
+    ),
+    hovertemplate = paste0(
+      "<b>%{label}</b>",
+      "<br>Estudiantes: %{value}",
+      "<br>Porcentaje: %{percent}",
+      "<extra></extra>"
+    ),
+    domain = list(
+      x = c(0.15, 0.85),
+      y = c(0.05, 0.95)
+    ),
+    visible = TRUE,
+    showlegend = FALSE
+  )
+
+# Vista 2: estudiantes que superan P25
+figura_4 <- figura_4 %>%
+  add_bars(
+    data = datos_supera,
+    x = ~Internet,
+    y = ~Porcentaje,
+    name = "Supera P25",
+    marker = list(color = "#555555"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: Supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Vista 2: estudiantes que no superan P25
+figura_4 <- figura_4 %>%
+  add_bars(
+    data = datos_no_supera,
+    x = ~Internet,
+    y = ~Porcentaje,
+    name = "No supera P25",
+    marker = list(color = "#BDBDBD"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: No supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Diseño de la Figura 4
+figura_4 <- figura_4 %>%
   layout(
+
     title = list(
       text = "Figura 4. Distribución de estudiantes según acceso a internet",
       x = 0.5
     ),
+
     xaxis = list(
-      title = "Porcentaje de estudiantes (%)",
-      range = c(0, 110)
-    ),
-    yaxis = list(
-      title = "",
+      title = "Disponibilidad de internet",
+      visible = FALSE,
       categoryorder = "array",
-      categoryarray = datos_internet$Internet
+      categoryarray = categorias_internet
     ),
+
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 110),
+      ticksuffix = "%",
+      visible = FALSE
+    ),
+
+    barmode = "group",
+
     plot_bgcolor = "white",
     paper_bgcolor = "white",
-    showlegend = FALSE,
+
     margin = list(
-      l = 150,
-      r = 70,
-      b = 80,
+      l = 100,
+      r = 100,
+      b = 180,
       t = 100
+    ),
+
+    # Botones interactivos debajo de la gráfica
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Distribución de estudiantes",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 4. Distribución de estudiantes según acceso a internet",
+                  x = 0.5
+                ),
+                xaxis = list(visible = FALSE),
+                yaxis = list(visible = FALSE),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Según variable binaria",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 4. Acceso a internet y clasificación del percentil 25",
+                  x = 0.5
+                ),
+                xaxis = list(
+                  title = "Disponibilidad de internet",
+                  visible = TRUE,
+                  categoryorder = "array",
+                  categoryarray = categorias_internet
+                ),
+                yaxis = list(
+                  title = "Porcentaje de estudiantes (%)",
+                  range = c(0, 110),
+                  ticksuffix = "%",
+                  visible = TRUE
+                ),
+                showlegend = TRUE
+              )
+            )
+          )
+
+        )
+      )
+    ),
+
+    showlegend = FALSE,
+
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.10,
+      yanchor = "top"
     )
   )
 
-# Mostrar gráfico en HTML
+# Mostrar Figura 4 en HTML
 figura_4
 
 ```
@@ -589,82 +1850,942 @@ figura_4
 
 
 
+
+
+
+
 ### 3.3.5 Distribución de estudiantes según disponibilidad de computador
 
-```{r figura-5, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Tabla disponibilidad de computador tabla-8, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_tabla8 <- icfes_limpia %>%
+  mutate(
+    Computador = case_when(
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("SI", "SÍ", "1", "TRUE") ~ "Sí tiene computador",
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("NO", "0", "FALSE") ~ "No tiene computador",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Computador), !is.na(Percentil))
+
+# Orden de categorías
+orden_computador <- c(
+  "No tiene computador",
+  "Sí tiene computador"
+)
+
+# Calcular frecuencias y porcentajes
+distribucion_computador <- datos_tabla8 %>%
+  count(Computador, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  )
+
+# Calcular clasificación P25 dentro de cada categoría
+clasificacion_computador <- datos_tabla8 %>%
+  count(Computador, Percentil, name = "n") %>%
+  group_by(Computador) %>%
+  mutate(
+    Porcentaje = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  select(Computador, Percentil, Porcentaje) %>%
+  pivot_wider(
+    names_from = Percentil,
+    values_from = Porcentaje,
+    values_fill = 0
+  )
+
+# Unir resultados
+tabla_8 <- distribucion_computador %>%
+  left_join(clasificacion_computador, by = "Computador") %>%
+  mutate(
+    Computador = factor(
+      Computador,
+      levels = orden_computador
+    )
+  ) %>%
+  arrange(Computador) %>%
+  mutate(
+    Computador = as.character(Computador)
+  )
+
+# Agregar fila de total
+total_tabla8 <- data.frame(
+  Computador = "Total",
+  Frecuencia = nrow(datos_tabla8),
+  Porcentaje = 100,
+  `Supera P25` = 100 *
+    sum(datos_tabla8$Percentil == "Supera P25") /
+    nrow(datos_tabla8),
+  `No supera P25` = 100 *
+    sum(datos_tabla8$Percentil == "No supera P25") /
+    nrow(datos_tabla8),
+  check.names = FALSE
+)
+
+tabla_8 <- bind_rows(tabla_8, total_tabla8)
+
+# Dar formato a frecuencias y porcentajes
+tabla_8 <- tabla_8 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    across(
+      c(Porcentaje, `Supera P25`, `No supera P25`),
+      ~paste0(
+        formatC(
+          .x,
+          format = "f",
+          digits = 1,
+          decimal.mark = ","
+        ),
+        "%"
+      )
+    )
+  ) %>%
+  select(
+    Computador,
+    Frecuencia,
+    Porcentaje,
+    `Supera P25`,
+    `No supera P25`
+  )
+
+# Mostrar Tabla 8 en HTML
+tabla_8 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 8. Análisis descriptivo de la variable disponibilidad de computador",
+    col.names = c(
+      "Disponibilidad de computador",
+      "Frecuencia (n)",
+      "Porcentaje (%)",
+      "Supera P25 (%)",
+      "No supera P25 (%)"
+    ),
+    align = c("l", "c", "c", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_8),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes de clasificación según P25",
+      "se calcularon dentro de cada categoría de disponibilidad",
+      "de computador. Se incluyeron únicamente los registros",
+      "con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+
+```{r Grafica disponibilidad de computador figura-5, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(dplyr)
 library(plotly)
 
-# Cargar datos
+# Cargar base de datos
 icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
 
-# Organizar información
-datos_computador <- icfes_limpia %>%
+# Preparar variables
+datos_figura5 <- icfes_limpia %>%
   mutate(
     Computador = case_when(
       toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
-        c("SI", "SÍ") ~ "Sí tiene computador",
-      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) == "NO" ~
-        "No tiene computador",
+        c("SI", "SÍ", "1", "TRUE") ~ "Sí tiene computador",
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("NO", "0", "FALSE") ~ "No tiene computador",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
       TRUE ~ NA_character_
     )
   ) %>%
-  filter(!is.na(Computador)) %>%
+  filter(!is.na(Computador))
+
+# Orden de categorías
+categorias_computador <- c(
+  "No tiene computador",
+  "Sí tiene computador"
+)
+
+# Distribución general
+general <- datos_figura5 %>%
   count(Computador, name = "Frecuencia") %>%
   mutate(
-    Porcentaje = Frecuencia / sum(Frecuencia) * 100
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia),
+    Computador = factor(
+      Computador,
+      levels = categorias_computador
+    )
+  ) %>%
+  arrange(Computador)
+
+# Distribución según variable binaria
+comparacion <- datos_figura5 %>%
+  filter(!is.na(Percentil)) %>%
+  count(Computador, Percentil, name = "Frecuencia") %>%
+  group_by(Computador) %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    Computador = factor(
+      Computador,
+      levels = categorias_computador
+    )
   )
 
-# Construir figura interactiva
-figura_5 <- plot_ly(
-  data = datos_computador,
-  x = ~Porcentaje,
-  y = ~"Estudiantes",
-  color = ~Computador,
-  colors = c("gray35", "gray70"),
-  type = "bar",
-  orientation = "h",
-  text = ~paste0(round(Porcentaje, 1), "%"),
-  textposition = "inside",
-  insidetextanchor = "middle",
-  customdata = ~Frecuencia,
-  hovertemplate = paste0(
-    "<b>%{fullData.name}</b>",
-    "<br>Porcentaje: %{x:.1f}%",
-    "<br>Número de estudiantes: %{customdata}",
-    "<extra></extra>"
+# Separar categorías de la variable binaria
+datos_supera <- comparacion %>%
+  filter(Percentil == "Supera P25")
+
+datos_no_supera <- comparacion %>%
+  filter(Percentil == "No supera P25")
+
+# Crear Figura 5
+figura_5 <- plot_ly()
+
+# Vista 1: distribución general en barras
+figura_5 <- figura_5 %>%
+  add_bars(
+    data = general,
+    x = ~Computador,
+    y = ~Porcentaje,
+    name = "Distribución general",
+    marker = list(
+      color = c("#BDBDBD", "#555555")
+    ),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = TRUE,
+    showlegend = FALSE
   )
-) %>%
+
+# Vista 2: estudiantes que superan P25
+figura_5 <- figura_5 %>%
+  add_bars(
+    data = datos_supera,
+    x = ~Computador,
+    y = ~Porcentaje,
+    name = "Supera P25",
+    marker = list(color = "#555555"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: Supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Vista 2: estudiantes que no superan P25
+figura_5 <- figura_5 %>%
+  add_bars(
+    data = datos_no_supera,
+    x = ~Computador,
+    y = ~Porcentaje,
+    name = "No supera P25",
+    marker = list(color = "#BDBDBD"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: No supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Diseño de la Figura 5
+figura_5 <- figura_5 %>%
   layout(
+
     title = list(
       text = "Figura 5. Distribución de estudiantes según disponibilidad de computador",
       x = 0.5
     ),
-    barmode = "stack",
+
     xaxis = list(
-      title = "Porcentaje de estudiantes (%)",
-      range = c(0, 100)
+      title = "Disponibilidad de computador",
+      categoryorder = "array",
+      categoryarray = categorias_computador
     ),
-    yaxis = list(title = ""),
+
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 110),
+      ticksuffix = "%"
+    ),
+
+    barmode = "group",
+
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+
+    margin = list(
+      l = 90,
+      r = 80,
+      b = 180,
+      t = 100
+    ),
+
+    # Botones interactivos debajo de la gráfica
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Distribución de estudiantes",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 5. Distribución de estudiantes según disponibilidad de computador",
+                  x = 0.5
+                ),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Según variable binaria",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 5. Disponibilidad de computador y clasificación del percentil 25",
+                  x = 0.5
+                ),
+                showlegend = TRUE
+              )
+            )
+          )
+
+        )
+      )
+    ),
+
+    showlegend = FALSE,
+
     legend = list(
       orientation = "h",
       x = 0.5,
       xanchor = "center",
-      y = -0.3
-    ),
-    plot_bgcolor = "white",
-    paper_bgcolor = "white",
-    margin = list(
-      l = 80,
-      r = 60,
-      b = 110,
-      t = 100
+      y = -0.10,
+      yanchor = "top"
     )
   )
 
-# Mostrar figura
+# Mostrar Figura 5 en HTML
 figura_5
 
 ```
+
+
+
+
+### 3.3.6 Distribución de estudiantes según zona de ubicación del colegio
+
+
+```{r Tabla zona de ubicacion del colegio tabla-9, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_tabla9 <- icfes_limpia %>%
+  mutate(
+    Zona = case_when(
+      toupper(trimws(as.character(COLE_AREA_UBICACION))) %in%
+        c("URBANO", "URBANA", "U") ~ "Urbano",
+      toupper(trimws(as.character(COLE_AREA_UBICACION))) %in%
+        c("RURAL", "R") ~ "Rural",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Zona), !is.na(Percentil))
+
+# Orden de categorías
+orden_zona <- c(
+  "Rural",
+  "Urbano"
+)
+
+# Calcular frecuencias y porcentajes por zona
+distribucion_zona <- datos_tabla9 %>%
+  count(Zona, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  )
+
+# Calcular clasificación P25 dentro de cada zona
+clasificacion_zona <- datos_tabla9 %>%
+  count(Zona, Percentil, name = "n") %>%
+  group_by(Zona) %>%
+  mutate(
+    Porcentaje = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  select(Zona, Percentil, Porcentaje) %>%
+  pivot_wider(
+    names_from = Percentil,
+    values_from = Porcentaje,
+    values_fill = 0
+  )
+
+# Unir resultados
+tabla_9 <- distribucion_zona %>%
+  left_join(clasificacion_zona, by = "Zona") %>%
+  mutate(
+    Zona = factor(
+      Zona,
+      levels = orden_zona
+    )
+  ) %>%
+  arrange(Zona) %>%
+  mutate(
+    Zona = as.character(Zona)
+  )
+
+# Agregar fila de total
+total_tabla9 <- data.frame(
+  Zona = "Total",
+  Frecuencia = nrow(datos_tabla9),
+  Porcentaje = 100,
+  `Supera P25` = 100 *
+    sum(datos_tabla9$Percentil == "Supera P25") /
+    nrow(datos_tabla9),
+  `No supera P25` = 100 *
+    sum(datos_tabla9$Percentil == "No supera P25") /
+    nrow(datos_tabla9),
+  check.names = FALSE
+)
+
+tabla_9 <- bind_rows(tabla_9, total_tabla9)
+
+# Dar formato a frecuencias y porcentajes
+tabla_9 <- tabla_9 %>%
+  mutate(
+    Frecuencia = format(
+      Frecuencia,
+      big.mark = ".",
+      scientific = FALSE,
+      trim = TRUE
+    ),
+    across(
+      c(Porcentaje, `Supera P25`, `No supera P25`),
+      ~paste0(
+        formatC(
+          .x,
+          format = "f",
+          digits = 1,
+          decimal.mark = ","
+        ),
+        "%"
+      )
+    )
+  ) %>%
+  select(
+    Zona,
+    Frecuencia,
+    Porcentaje,
+    `Supera P25`,
+    `No supera P25`
+  )
+
+# Mostrar Tabla 9 en HTML
+tabla_9 %>%
+  kable(
+    format = "html",
+    caption = "Tabla 9. Análisis descriptivo de la variable zona de ubicación del colegio",
+    col.names = c(
+      "Zona de ubicación del colegio",
+      "Frecuencia (n)",
+      "Porcentaje (%)",
+      "Supera P25 (%)",
+      "No supera P25 (%)"
+    ),
+    align = c("l", "c", "c", "c", "c"),
+    escape = FALSE
+  ) %>%
+  kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed"
+    ),
+    full_width = FALSE,
+    position = "center",
+    font_size = 13
+  ) %>%
+  row_spec(
+    0,
+    bold = TRUE,
+    background = "#E8E8E8",
+    color = "#333333"
+  ) %>%
+  row_spec(
+    nrow(tabla_9),
+    bold = TRUE,
+    background = "#F0F0F0"
+  ) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia con base en los resultados",
+      "de las pruebas Saber 11 del año 2020.",
+      "Los porcentajes de clasificación según P25",
+      "se calcularon dentro de cada zona de ubicación del colegio.",
+      "Se incluyeron únicamente los registros con información válida."
+    ),
+    general_title = "Nota: ",
+    footnote_as_chunk = TRUE
+  )
+
+```
+
+
+
+
+
+
+
+
+
+```{r Grafica zona de ubicacion del colegio figura-6, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar variables
+datos_figura6 <- icfes_limpia %>%
+  mutate(
+    Zona = case_when(
+      toupper(trimws(as.character(COLE_AREA_UBICACION))) %in%
+        c("URBANO", "URBANA", "U") ~ "Urbano",
+      toupper(trimws(as.character(COLE_AREA_UBICACION))) %in%
+        c("RURAL", "R") ~ "Rural",
+      TRUE ~ NA_character_
+    ),
+    Percentil = case_when(
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("1", "TRUE", "SI", "SÍ", "SUPERA P25") ~ "Supera P25",
+      toupper(trimws(as.character(SUPERA_P25))) %in%
+        c("0", "FALSE", "NO", "NO SUPERA P25") ~ "No supera P25",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Zona))
+
+# Orden de categorías
+categorias_zona <- c(
+  "Rural",
+  "Urbano"
+)
+
+# Distribución general
+general <- datos_figura6 %>%
+  count(Zona, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia),
+    Zona = factor(Zona, levels = categorias_zona)
+  ) %>%
+  arrange(Zona)
+
+# Distribución según variable binaria
+comparacion <- datos_figura6 %>%
+  filter(!is.na(Percentil)) %>%
+  count(Zona, Percentil, name = "Frecuencia") %>%
+  group_by(Zona) %>%
+  mutate(
+    Porcentaje = 100 * Frecuencia / sum(Frecuencia)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    Zona = factor(Zona, levels = categorias_zona)
+  )
+
+# Separar categorías
+datos_supera <- comparacion %>%
+  filter(Percentil == "Supera P25")
+
+datos_no_supera <- comparacion %>%
+  filter(Percentil == "No supera P25")
+
+# Crear Figura 6
+figura_6 <- plot_ly()
+
+# Vista 1: gráfico de pastel
+figura_6 <- figura_6 %>%
+  add_pie(
+    data = general,
+    labels = ~Zona,
+    values = ~Frecuencia,
+    hole = 0,
+    textinfo = "label+percent",
+    textposition = "outside",
+    marker = list(
+      colors = c("#BDBDBD", "#555555")
+    ),
+    hovertemplate = paste0(
+      "<b>%{label}</b>",
+      "<br>Estudiantes: %{value}",
+      "<br>Porcentaje: %{percent}",
+      "<extra></extra>"
+    ),
+    domain = list(
+      x = c(0.15, 0.85),
+      y = c(0.05, 0.95)
+    ),
+    visible = TRUE,
+    showlegend = FALSE
+  )
+
+# Vista 2: estudiantes que superan P25
+figura_6 <- figura_6 %>%
+  add_bars(
+    data = datos_supera,
+    x = ~Zona,
+    y = ~Porcentaje,
+    name = "Supera P25",
+    marker = list(color = "#555555"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: Supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Vista 2: estudiantes que no superan P25
+figura_6 <- figura_6 %>%
+  add_bars(
+    data = datos_no_supera,
+    x = ~Zona,
+    y = ~Porcentaje,
+    name = "No supera P25",
+    marker = list(color = "#BDBDBD"),
+    text = ~paste0(round(Porcentaje, 1), "%"),
+    textposition = "outside",
+    customdata = ~Frecuencia,
+    hovertemplate = paste0(
+      "<b>%{x}</b>",
+      "<br>Clasificación: No supera P25",
+      "<br>Porcentaje: %{y:.1f}%",
+      "<br>Estudiantes: %{customdata}",
+      "<extra></extra>"
+    ),
+    visible = FALSE
+  )
+
+# Diseño de la Figura 6
+figura_6 <- figura_6 %>%
+  layout(
+
+    title = list(
+      text = "Figura 6. Distribución de estudiantes según zona de ubicación del colegio",
+      x = 0.5
+    ),
+
+    xaxis = list(
+      title = "Zona de ubicación del colegio",
+      visible = FALSE,
+      categoryorder = "array",
+      categoryarray = categorias_zona
+    ),
+
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 110),
+      ticksuffix = "%",
+      visible = FALSE
+    ),
+
+    barmode = "group",
+
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+
+    margin = list(
+      l = 100,
+      r = 100,
+      b = 180,
+      t = 100
+    ),
+
+    # Botones interactivos debajo de la gráfica
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "right",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.25,
+        yanchor = "top",
+        showactive = TRUE,
+
+        buttons = list(
+
+          list(
+            label = "Distribución de estudiantes",
+            method = "update",
+            args = list(
+              list(
+                visible = c(TRUE, FALSE, FALSE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 6. Distribución de estudiantes según zona de ubicación del colegio",
+                  x = 0.5
+                ),
+                xaxis = list(visible = FALSE),
+                yaxis = list(visible = FALSE),
+                showlegend = FALSE
+              )
+            )
+          ),
+
+          list(
+            label = "Según variable binaria",
+            method = "update",
+            args = list(
+              list(
+                visible = c(FALSE, TRUE, TRUE)
+              ),
+              list(
+                title = list(
+                  text = "Figura 6. Zona de ubicación del colegio y clasificación del percentil 25",
+                  x = 0.5
+                ),
+                xaxis = list(
+                  title = "Zona de ubicación del colegio",
+                  visible = TRUE,
+                  categoryorder = "array",
+                  categoryarray = categorias_zona
+                ),
+                yaxis = list(
+                  title = "Porcentaje de estudiantes (%)",
+                  range = c(0, 110),
+                  ticksuffix = "%",
+                  visible = TRUE
+                ),
+                showlegend = TRUE
+              )
+            )
+          )
+
+        )
+      )
+    ),
+
+    showlegend = FALSE,
+
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.10,
+      yanchor = "top"
+    )
+  )
+
+# Mostrar Figura 6 en HTML
+figura_6
+
+```
+
+
+
+
+
+# 3.4 Matriz de correlación
+
+```{r Matriz de correlacion matriz, echo=FALSE}
+Base_datos <- read.csv("ICFES_DEPURADA.csv", stringsAsFactors = TRUE,
+                       fileEncoding = "UTF-8")
+
+vars <- Base_datos %>%
+  select(ESTU_GENERO, ESTU_MCPIO_RESIDE, FAMI_ESTRATOVIVIENDA,
+         FAMI_TIENEINTERNET, FAMI_TIENECOMPUTADOR, COLE_AREA_UBICACION)
+
+names(vars) <- c("Género", "Municipio", "Estrato", "Internet",
+                 "Computador", "Ubicación colegio")
+
+cramer_v <- function(x, y) {
+  tab  <- table(x, y)
+  n    <- sum(tab)
+  chi2 <- suppressWarnings(chisq.test(tab, correct = FALSE)$statistic)
+  phi2 <- chi2 / n
+  r <- nrow(tab)
+  k <- ncol(tab)
+  phi2c <- max(0, phi2 - ((k - 1) * (r - 1)) / (n - 1))
+  rc <- r - ((r - 1)^2) / (n - 1)
+  kc <- k - ((k - 1)^2) / (n - 1)
+  as.numeric(sqrt(phi2c / min(kc - 1, rc - 1)))
+}
+
+p_chisq <- function(x, y) {
+  suppressWarnings(chisq.test(table(x, y))$p.value)
+}
+
+nm <- names(vars)
+cor_mat <- matrix(NA, length(nm), length(nm), dimnames = list(nm, nm))
+p_mat <- cor_mat
+
+for (i in nm) {
+  for (j in nm) {
+    if (i == j) {
+      cor_mat[i, j] <- 1
+      p_mat[i, j] <- 0
+    } else {
+      cor_mat[i, j] <- cramer_v(vars[[i]], vars[[j]])
+      p_mat[i, j] <- p_chisq(vars[[i]], vars[[j]])
+    }
+  }
+}
+
+df_cor <- as.data.frame(as.table(cor_mat)) %>%
+  rename(V = Freq) %>%
+  mutate(
+    p = as.vector(p_mat),
+    signif = p < 0.05,
+    label = ifelse(signif, sprintf("%.2f", V), sprintf("%.2f ✗", V)),
+    text = paste0("<b>", Var1, "</b> vs <b>", Var2, "</b><br>",
+                  "V de Cramér: ", round(V, 3), "<br>",
+                  "p-valor: ", format.pval(p, digits = 3))
+  )
+
+p_cor <- ggplot(df_cor, aes(Var1, Var2, fill = V, text = text)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = label), size = 4, fontface = "bold",
+            color = ifelse(df_cor$V > 0.5, "white", "black")) +
+  scale_fill_gradient(low = "#FFFFFF", high = "#8B0000",
+                      limits = c(0, 1), name = "V de Cramér") +
+  labs(title = "Figura 9. Matriz de Asociación (V de Cramér)",
+       x = NULL, y = NULL,
+       caption = "✗ = asociación no significativa (p ≥ 0.05, prueba χ²)") +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", size = 12),
+    axis.text.y = element_text(face = "bold", size = 12),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5,
+                              color = "#8B0000", margin = margin(b = 15)),
+    panel.grid = element_blank(),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  coord_fixed()
+
+p_cor
+
+```
+
+
+
 
