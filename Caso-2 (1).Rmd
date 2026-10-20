@@ -1,0 +1,834 @@
+---
+title: "Machine learning ICFES"
+subtitle: "Mendoza Santiago"
+author: ""
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: tango
+    toc: true
+    toc_depth: 4
+    number_sections: true
+    fig_width: 8
+    fig_height: 5
+    fig_caption: true
+    dev: "png"
+    keep_md: false
+    self_contained: true
+    css: Sebastian-styles.css
+    code_folding: none
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+```{=html}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  /* ========================================================
+     1. INYECTAR SÍMBOLOS PATRIOS, GUACAMAYAS Y FLORES EN EL HERO
+     ======================================================== */
+  const hero = document.querySelector('.page-header');
+  if (hero) {
+    // --- Contenedor de bandera + escudo ---
+    const symbols = document.createElement('div');
+    symbols.className = 'header-symbols';
+    symbols.innerHTML = `
+      <svg class="bandera-svg" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" aria-label="Bandera de Colombia">
+        <rect width="300" height="100" fill="#FCD116"/>
+        <rect y="100" width="300" height="50" fill="#003893"/>
+        <rect y="150" width="300" height="50" fill="#CE1126"/>
+      </svg>
+      <img class="escudo"
+           src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Coat_of_arms_of_Colombia.svg/240px-Coat_of_arms_of_Colombia.svg.png"
+           alt="Escudo de Colombia"
+           onerror="this.style.display='none'" />
+    `;
+    hero.insertBefore(symbols, hero.firstChild);
+
+    // --- Guacamayas y flores decorativas ---
+    const decorations = document.createElement('div');
+    decorations.className = 'hero-decorations';
+    decorations.innerHTML = `
+      <!-- Guacamaya izquierda posada -->
+      <svg class="macaw macaw-left" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 75 150 Q 55 195 45 220 L 70 220 Q 80 185 92 158 Z" fill="#CE1126"/>
+        <path d="M 90 150 Q 88 195 86 220 L 110 220 Q 110 185 102 158 Z" fill="#FCD116"/>
+        <path d="M 100 150 Q 112 195 122 220 L 145 220 Q 130 185 115 158 Z" fill="#003893"/>
+        <ellipse cx="100" cy="115" rx="38" ry="52" fill="#CE1126"/>
+        <ellipse cx="78" cy="108" rx="22" ry="42" fill="#003893" transform="rotate(-18 78 108)"/>
+        <ellipse cx="78" cy="108" rx="12" ry="32" fill="#FCD116" transform="rotate(-18 78 108)"/>
+        <circle cx="115" cy="68" r="26" fill="#CE1126"/>
+        <circle cx="128" cy="68" r="18" fill="#FFFFFF"/>
+        <circle cx="134" cy="64" r="4.5" fill="#212529"/>
+        <path d="M 142 62 Q 175 68 168 80 Q 156 86 142 76 Z" fill="#212529"/>
+        <circle cx="105" cy="46" r="9" fill="#FCD116"/>
+        <circle cx="118" cy="42" r="7" fill="#003893"/>
+        <circle cx="98" cy="52" r="6" fill="#FCD116"/>
+      </svg>
+
+      <!-- Guacamaya derecha posada -->
+      <svg class="macaw macaw-right" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 75 150 Q 55 195 45 220 L 70 220 Q 80 185 92 158 Z" fill="#003893"/>
+        <path d="M 90 150 Q 88 195 86 220 L 110 220 Q 110 185 102 158 Z" fill="#FCD116"/>
+        <path d="M 100 150 Q 112 195 122 220 L 145 220 Q 130 185 115 158 Z" fill="#CE1126"/>
+        <ellipse cx="100" cy="115" rx="38" ry="52" fill="#003893"/>
+        <ellipse cx="78" cy="108" rx="22" ry="42" fill="#CE1126" transform="rotate(-18 78 108)"/>
+        <ellipse cx="78" cy="108" rx="12" ry="32" fill="#FCD116" transform="rotate(-18 78 108)"/>
+        <circle cx="115" cy="68" r="26" fill="#003893"/>
+        <circle cx="128" cy="68" r="18" fill="#FFFFFF"/>
+        <circle cx="134" cy="64" r="4.5" fill="#212529"/>
+        <path d="M 142 62 Q 175 68 168 80 Q 156 86 142 76 Z" fill="#212529"/>
+        <circle cx="105" cy="46" r="9" fill="#FCD116"/>
+        <circle cx="118" cy="42" r="7" fill="#CE1126"/>
+        <circle cx="98" cy="52" r="6" fill="#FCD116"/>
+      </svg>
+
+      <!-- Orquídea (flor nacional de Colombia) — superior izquierda -->
+      <svg class="flower flower-1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="50" cy="22" rx="12" ry="18" fill="#D80025"/>
+        <ellipse cx="50" cy="78" rx="12" ry="18" fill="#D80025"/>
+        <ellipse cx="22" cy="50" rx="18" ry="12" fill="#D80025"/>
+        <ellipse cx="78" cy="50" rx="18" ry="12" fill="#D80025"/>
+        <ellipse cx="32" cy="32" rx="12" ry="9" fill="#003189" transform="rotate(-45 32 32)"/>
+        <ellipse cx="68" cy="32" rx="12" ry="9" fill="#003189" transform="rotate(45 68 32)"/>
+        <ellipse cx="32" cy="68" rx="12" ry="9" fill="#003189" transform="rotate(45 32 68)"/>
+        <ellipse cx="68" cy="68" rx="12" ry="9" fill="#003189" transform="rotate(-45 68 68)"/>
+        <circle cx="50" cy="50" r="12" fill="#FFD800"/>
+        <circle cx="50" cy="50" r="6" fill="#D80025"/>
+      </svg>
+
+      <!-- Orquídea superior derecha -->
+      <svg class="flower flower-2" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="50" cy="22" rx="12" ry="18" fill="#003189"/>
+        <ellipse cx="50" cy="78" rx="12" ry="18" fill="#003189"/>
+        <ellipse cx="22" cy="50" rx="18" ry="12" fill="#003189"/>
+        <ellipse cx="78" cy="50" rx="18" ry="12" fill="#003189"/>
+        <ellipse cx="32" cy="32" rx="12" ry="9" fill="#D80025" transform="rotate(-45 32 32)"/>
+        <ellipse cx="68" cy="32" rx="12" ry="9" fill="#D80025" transform="rotate(45 68 32)"/>
+        <ellipse cx="32" cy="68" rx="12" ry="9" fill="#D80025" transform="rotate(45 32 68)"/>
+        <ellipse cx="68" cy="68" rx="12" ry="9" fill="#D80025" transform="rotate(-45 68 68)"/>
+        <circle cx="50" cy="50" r="12" fill="#FFD800"/>
+        <circle cx="50" cy="50" r="6" fill="#003189"/>
+      </svg>
+
+      <!-- Orquídea central pequeña -->
+      <svg class="flower flower-3" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="50" cy="22" rx="12" ry="18" fill="#FFD800"/>
+        <ellipse cx="50" cy="78" rx="12" ry="18" fill="#FFD800"/>
+        <ellipse cx="22" cy="50" rx="18" ry="12" fill="#FFD800"/>
+        <ellipse cx="78" cy="50" rx="18" ry="12" fill="#FFD800"/>
+        <circle cx="50" cy="50" r="14" fill="#D80025"/>
+        <circle cx="50" cy="50" r="7" fill="#003189"/>
+      </svg>
+    `;
+    hero.appendChild(decorations);
+  }
+
+  /* ========================================================
+     2. FONDO ANIMADO GLOBAL: partículas flotantes en colores bandera
+     ======================================================== */
+  const bg = document.createElement('div');
+  bg.className = 'animated-background';
+  const colors = ['#FFD800', '#003189', '#D80025'];
+  const particleCount = 28;
+
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'floating-particle' + (i % 5 === 0 ? ' star' : '');
+    const size = 6 + Math.random() * 18;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (18 + Math.random() * 22) + 's';
+    p.style.animationDelay = -(Math.random() * 30) + 's';
+    bg.appendChild(p);
+  }
+  document.body.insertBefore(bg, document.body.firstChild);
+
+  /* ========================================================
+     3. TOC: detectar si existe y asegurar visibilidad
+     ======================================================== */
+  const toc = document.getElementById('TOC');
+  if (toc) {
+    toc.style.visibility = 'visible';
+    toc.style.opacity = '1';
+  }
+
+  /* ========================================================
+     4. SMOOTH SCROLL
+     ======================================================== */
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+});
+</script>
+
+# Introducción {.page-header}
+
+<div class="header-symbols">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Flag_of_Colombia.svg/320px-Flag_of_Colombia.svg.png" alt="Bandera de Colombia" class="bandera">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Coat_of_arms_of_Colombia.svg/250px-Coat_of_arms_of_Colombia.svg.png" alt="Escudo de Colombia" class="escudo">
+</div>
+```
+
+# 1 Introduccion
+
+La educación es uno de los pilares fundamentales para el desarrollo social y económico de una región, ya que contribuye a la formación de capital humano y a la generación de oportunidades. En Colombia, las pruebas Saber 11, aplicadas por el Instituto Colombiano para la Evaluación de la Educación (ICFES), constituyen una herramienta importante para evaluar las competencias adquiridas por los estudiantes al finalizar la educación media. Sus resultados permiten conocer el desempeño académico de la población estudiantil e identificar diferencias que pueden estar relacionadas con las condiciones sociales, económicas y educativas en las que se desarrolla el proceso de aprendizaje.
+
+El desempeño de los estudiantes no depende únicamente de sus conocimientos y habilidades individuales, sino que también puede estar relacionado con factores externos que influyen en sus oportunidades de aprendizaje. Aspectos como el estrato socioeconómico, el acceso a internet, la disponibilidad de un computador, el municipio de residencia y la ubicación urbana o rural de las instituciones educativas pueden reflejar diferencias en el acceso a recursos y condiciones de estudio. Estas características adquieren especial relevancia en el año 2020, cuando la pandemia de COVID-19 provocó importantes cambios en el sistema educativo colombiano y puso en evidencia las desigualdades existentes en el acceso a herramientas tecnológicas y recursos para la educación.
+
+En este contexto, el presente estudio utiliza una base de datos de los resultados de las pruebas Saber 11 correspondientes a estudiantes del Valle del Cauca durante el año 2020, con el propósito de desarrollar un ejercicio de clasificación supervisada. La investigación se centra en determinar si un estudiante supera o no el percentil 25 de la distribución nacional, tomando esta condición como variable dependiente binaria. Para ello, se consideran seis características: género, municipio de residencia, estrato socioeconómico, acceso a internet, disponibilidad de computador y ubicación urbana o rural del establecimiento educativo. A partir de esta información, se busca identificar patrones que permitan clasificar a los estudiantes según su posición relativa en los resultados nacionales.
+
+La importancia de realizar esta clasificación radica en la posibilidad de reconocer qué características se relacionan con una mayor o menor probabilidad de superar el umbral establecido. En particular, el análisis permite explorar si las diferencias en las condiciones socioeconómicas, el acceso a recursos tecnológicos y el entorno educativo se reflejan en los resultados académicos. Asimismo, identificar estos patrones puede aportar información útil para comprender las desigualdades educativas presentes en el Valle del Cauca y orientar futuras investigaciones o estrategias dirigidas a mejorar las oportunidades de aprendizaje. Es importante señalar que estas relaciones no necesariamente implican causalidad, pero pueden proporcionar evidencia relevante sobre las diferencias observadas entre los estudiantes.
+
+El objetivo de esta investigación es desarrollar y comparar dos modelos de clasificación supervisada, regresión logística (Logit) y K vecinos más cercanos (KNN), para determinar qué tan bien las características sociodemográficas, socioeconómicas y educativas permiten clasificar a los estudiantes del Valle del Cauca según si superan el percentil 25 nacional en las pruebas Saber 11 de 2020. La comparación de ambos modelos permitirá evaluar dos enfoques diferentes: uno estadístico y paramétrico, basado en la estimación de probabilidades, y otro no paramétrico, fundamentado en la similitud entre observaciones. Su desempeño se analizará mediante métricas como exactitud (accuracy), sensibilidad, especificidad y área bajo la curva ROC (AUC), con el fin de identificar cuál ofrece mejores resultados para el problema planteado.
+
+De esta manera, el estudio busca no solo evaluar la capacidad predictiva de los modelos, sino también aportar una perspectiva cuantitativa sobre la relación entre las condiciones de los estudiantes y su desempeño académico. Los resultados permitirán establecer hasta qué punto las variables seleccionadas son suficientes para realizar una clasificación adecuada y determinar si los modelos desarrollados responden al objetivo de la investigación.
+
+
+# 2 Metodologia
+
+```{r Tabla de variables}
+
+library(knitr)
+library(kableExtra)
+
+
+tabla_variables <- data.frame(
+  
+  Variable = c(
+    "Supera_P25 (Y)",
+    "Género",
+    "Municipio de residencia",
+    "Estrato socioeconómico",
+    "Acceso a internet",
+    "Disponibilidad de computador",
+    "Ubicación del colegio"
+  ),
+  
+  Descripción = c(
+    "Indica si el estudiante supera el percentil 25 nacional en las pruebas Saber 11.",
+    "Género registrado del estudiante.",
+    "Municipio donde reside el estudiante.",
+    "Estrato socioeconómico de la vivienda del estudiante.",
+    "Indica si el hogar dispone de conexión a internet.",
+    "Indica si el hogar cuenta con computador.",
+    "Identifica si el colegio se encuentra en una zona urbana o rural."
+  ),
+  
+  `Tipo de variable` = c(
+    "Categórica binaria",
+    "Categórica nominal",
+    "Categórica nominal",
+    "Categórica ordinal*",
+    "Categórica binaria",
+    "Categórica binaria",
+    "Categórica binaria"
+  ),
+  
+  `Ejemplos / Notas` = c(
+    "0 = No supera P25; 1 = Supera P25.",
+    "Femenino, Masculino.",
+    "Cali, Palmira, Tuluá, Buenaventura, entre otros.",
+    "Estratos 1 a 6; Sin estrato.",
+    "Sí, No.",
+    "Sí, No.",
+    "Urbano, Rural."
+  ),
+  
+  check.names = FALSE
+)
+
+
+tabla_variables %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 1. Variables utilizadas en el modelo de clasificación del desempeño académico",
+    align = c("l", "l", "l", "l")
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020).",
+      "* Los estratos 1 a 6 tienen un orden natural;",
+      "'Sin estrato' es una categoría adicional sin orden."
+    ),
+    general_title = ""
+  )
+
+```
+
+
+
+
+
+
+# 3 Analisis descriptivo
+
+## 3.1 Distribución de las características de los estudiantes
+
+```{r}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+tabla_descriptiva <- readRDS("tabla_descriptiva.rds")
+
+# Seleccionar variables para la primera tabla
+tabla_2 <- tabla_descriptiva %>%
+  filter(
+    Variable %in% c(
+      "Supera percentil 25",
+      "Género",
+      "Estrato socioeconómico",
+      "Acceso a internet",
+      "Disponibilidad de computador",
+      "Ubicación del colegio"
+    )
+  ) %>%
+  mutate(
+    Variable = factor(
+      Variable,
+      levels = c(
+        "Supera percentil 25",
+        "Género",
+        "Estrato socioeconómico",
+        "Acceso a internet",
+        "Disponibilidad de computador",
+        "Ubicación del colegio"
+      )
+    )
+  ) %>%
+  arrange(Variable, Categoria) %>%
+  mutate(
+    Variable = as.character(Variable),
+    Porcentaje = sprintf("%.2f%%", Porcentaje)
+  ) %>%
+  rename(
+    `Categoría` = Categoria,
+    `Frecuencia (n)` = Frecuencia,
+    `Porcentaje (%)` = Porcentaje
+  )
+
+# Mostrar tabla en HTML
+tabla_2 %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 2. Distribución de las características de los estudiantes del Valle del Cauca",
+    align = c("l", "l", "r", "r"),
+    escape = TRUE
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020)."
+    ),
+    general_title = ""
+  )
+```
+
+
+
+
+
+## 3.2 Distribución de estudiantes por municipio de residencia
+
+```{r}
+tabla_descriptiva <- readRDS("tabla_descriptiva.rds")
+
+# Seleccionar información de municipios
+tabla_municipios <- tabla_descriptiva %>%
+  filter(Variable == "Municipio de residencia") %>%
+  arrange(desc(Frecuencia))
+
+# Identificar los 10 municipios con mayor frecuencia
+top_10 <- tabla_municipios %>%
+  slice_head(n = 10)
+
+# Agrupar los municipios restantes
+otros <- tabla_municipios %>%
+  slice(-(1:min(10, n()))) %>%
+  summarise(
+    Variable = "Municipio de residencia",
+    Categoria = "Otros",
+    Frecuencia = sum(Frecuencia),
+    Porcentaje = sum(Porcentaje)
+  )
+
+# Construir tabla final
+tabla_3 <- bind_rows(top_10, otros) %>%
+  select(Categoria, Frecuencia, Porcentaje) %>%
+  mutate(
+    Porcentaje = sprintf("%.2f%%", Porcentaje)
+  ) %>%
+  rename(
+    Municipio = Categoria,
+    `Frecuencia (n)` = Frecuencia,
+    `Porcentaje (%)` = Porcentaje
+  )
+
+# Mostrar tabla en HTML
+tabla_3 %>%
+  kbl(
+    format = "html",
+    caption = "Tabla 3. Distribución de estudiantes según municipio de residencia",
+    align = c("l", "r", "r")
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  footnote(
+    general = paste(
+      "Fuente: Elaboración propia a partir de los resultados",
+      "de las pruebas Saber 11 del ICFES, Valle del Cauca (2020).",
+      "Se presentan los diez municipios con mayor frecuencia;",
+      "los restantes se agrupan en la categoría Otros."
+    ),
+    general_title = ""
+  )
+```
+
+
+
+
+## 3.3 Distribución individual de las variables
+
+### 3.3.1 Distribución de estudiantes según el percentil 25
+
+```{r figura-1, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar datos
+datos_percentil <- icfes_limpia %>%
+  mutate(
+    Clasificacion = case_when(
+      as.character(SUPERA_P25) %in% c("0", "No supera P25") ~ "No supera P25",
+      as.character(SUPERA_P25) %in% c("1", "Supera P25") ~ "Supera P25",
+      TRUE ~ as.character(SUPERA_P25)
+    )
+  ) %>%
+  count(Clasificacion, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  )
+
+# Ordenar categorias
+datos_percentil$Clasificacion <- factor(
+  datos_percentil$Clasificacion,
+  levels = c("No supera P25", "Supera P25")
+)
+
+# Crear grafica interactiva
+figura_1 <- plot_ly(
+  data = datos_percentil,
+  x = ~Clasificacion,
+  y = ~Porcentaje,
+  type = "bar",
+  marker = list(color = "gray40"),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  customdata = ~Frecuencia,
+  hovertemplate = paste0(
+    "<b>%{x}</b>",
+    "<br>Porcentaje: %{y}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 1. Distribución de estudiantes según el percentil 25",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Clasificación del estudiante"
+    ),
+    yaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 100)
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 70,
+      r = 40,
+      b = 80,
+      t = 90
+    )
+  )
+
+# Mostrar grafica en el HTML
+figura_1
+
+```
+
+
+
+
+
+
+
+### 3.3.2 Distribución de estudiantes según género
+
+```{r figura-2, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos depurada
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar los datos
+datos_genero <- icfes_limpia %>%
+  mutate(
+    Genero = case_when(
+      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+        c("F", "FEMENINO") ~ "Femenino",
+      toupper(trimws(as.character(ESTU_GENERO))) %in% 
+        c("M", "MASCULINO") ~ "Masculino",
+      TRUE ~ as.character(ESTU_GENERO)
+    )
+  ) %>%
+  count(Genero, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  )
+
+# Ordenar categorias
+datos_genero <- datos_genero %>%
+  arrange(factor(Genero, levels = c("Femenino", "Masculino")))
+
+# Crear grafica de dona interactiva
+figura_2 <- plot_ly(
+  data = datos_genero,
+  labels = ~Genero,
+  values = ~Frecuencia,
+  type = "pie",
+  hole = 0.55,
+  sort = FALSE,
+  marker = list(
+    colors = c("gray40", "gray70"),
+    line = list(color = "white", width = 2)
+  ),
+  textinfo = "label+percent",
+  textposition = "outside",
+  hovertemplate = paste0(
+    "<b>%{label}</b>",
+    "<br>Estudiantes: %{value}",
+    "<br>Porcentaje: %{percent}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 2. Distribución de estudiantes según género",
+      x = 0.5
+    ),
+    annotations = list(
+      list(
+        text = "Género",
+        x = 0.5,
+        y = 0.5,
+        font = list(size = 20, color = "gray30"),
+        showarrow = FALSE
+      )
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 100,
+      r = 100,
+      b = 60,
+      t = 100
+    )
+  )
+
+# Mostrar grafica interactiva en el HTML
+figura_2
+
+```
+
+
+
+
+
+### 3.3.3 Distribución de estudiantes según estrato socioeconómico
+
+```{r figura-3, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- read.csv(
+  "ICFES_DEPURADA.csv",
+  stringsAsFactors = FALSE,
+  fileEncoding = "UTF-8"
+)
+
+# Preparar datos
+datos_estrato <- icfes_limpia %>%
+  count(FAMI_ESTRATOVIVIENDA) %>%
+  mutate(
+    Categoria = as.character(FAMI_ESTRATOVIVIENDA),
+    Porcentaje = round(n / sum(n) * 100, 1)
+  )
+
+# Ordenar estratos
+orden_estratos <- c(
+  "Estrato 1",
+  "Estrato 2",
+  "Estrato 3",
+  "Estrato 4",
+  "Estrato 5",
+  "Estrato 6",
+  "Sin Estrato"
+)
+
+datos_estrato <- datos_estrato %>%
+  mutate(
+    Categoria = factor(
+      Categoria,
+      levels = orden_estratos
+    )
+  ) %>%
+  arrange(Categoria)
+
+# Crear grafico interactivo
+figura_3 <- plot_ly(
+  data = datos_estrato,
+  x = ~Porcentaje,
+  y = ~Categoria,
+  type = "bar",
+  orientation = "h",
+  marker = list(color = "gray55"),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  customdata = ~n,
+  hovertemplate = paste0(
+    "<b>%{y}</b>",
+    "<br>Porcentaje: %{x}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 3. Distribucion de estudiantes segun estrato socioeconomico",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      rangemode = "tozero"
+    ),
+    yaxis = list(
+      title = "Estrato socioeconomico",
+      autorange = "reversed"
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 110,
+      r = 80,
+      b = 70,
+      t = 90
+    )
+  )
+
+# Mostrar grafico
+figura_3
+```
+
+
+
+
+
+### 3.3.4 Distribución de estudiantes según acceso a internet
+
+```{r figura-4, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar base de datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Preparar datos
+datos_internet <- icfes_limpia %>%
+  mutate(
+    Internet = case_when(
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) %in%
+        c("SI", "SÍ") ~ "Sí tiene internet",
+      toupper(trimws(as.character(FAMI_TIENEINTERNET))) == "NO" ~
+        "No tiene internet",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Internet)) %>%
+  count(Internet, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = round(Frecuencia / sum(Frecuencia) * 100, 1)
+  ) %>%
+  arrange(Porcentaje)
+
+# Crear gráfico interactivo
+figura_4 <- plot_ly(
+  data = datos_internet,
+  x = ~Porcentaje,
+  y = ~Internet,
+  type = "bar",
+  orientation = "h",
+  marker = list(
+    color = c("gray65", "gray35"),
+    line = list(color = "white", width = 1)
+  ),
+  text = ~paste0(Porcentaje, "%"),
+  textposition = "outside",
+  hovertemplate = paste0(
+    "<b>%{y}</b>",
+    "<br>Porcentaje: %{x:.1f}%",
+    "<br>Estudiantes: %{customdata}",
+    "<extra></extra>"
+  ),
+  customdata = ~Frecuencia
+) %>%
+  layout(
+    title = list(
+      text = "Figura 4. Distribución de estudiantes según acceso a internet",
+      x = 0.5
+    ),
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 110)
+    ),
+    yaxis = list(
+      title = "",
+      categoryorder = "array",
+      categoryarray = datos_internet$Internet
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    showlegend = FALSE,
+    margin = list(
+      l = 150,
+      r = 70,
+      b = 80,
+      t = 100
+    )
+  )
+
+# Mostrar gráfico en HTML
+figura_4
+
+```
+
+
+
+
+### 3.3.5 Distribución de estudiantes según disponibilidad de computador
+
+```{r figura-5, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotly)
+
+# Cargar datos
+icfes_limpia <- readRDS("ICFES_DEPURADA.rds")
+
+# Organizar información
+datos_computador <- icfes_limpia %>%
+  mutate(
+    Computador = case_when(
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) %in%
+        c("SI", "SÍ") ~ "Sí tiene computador",
+      toupper(trimws(as.character(FAMI_TIENECOMPUTADOR))) == "NO" ~
+        "No tiene computador",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Computador)) %>%
+  count(Computador, name = "Frecuencia") %>%
+  mutate(
+    Porcentaje = Frecuencia / sum(Frecuencia) * 100
+  )
+
+# Construir figura interactiva
+figura_5 <- plot_ly(
+  data = datos_computador,
+  x = ~Porcentaje,
+  y = ~"Estudiantes",
+  color = ~Computador,
+  colors = c("gray35", "gray70"),
+  type = "bar",
+  orientation = "h",
+  text = ~paste0(round(Porcentaje, 1), "%"),
+  textposition = "inside",
+  insidetextanchor = "middle",
+  customdata = ~Frecuencia,
+  hovertemplate = paste0(
+    "<b>%{fullData.name}</b>",
+    "<br>Porcentaje: %{x:.1f}%",
+    "<br>Número de estudiantes: %{customdata}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = list(
+      text = "Figura 5. Distribución de estudiantes según disponibilidad de computador",
+      x = 0.5
+    ),
+    barmode = "stack",
+    xaxis = list(
+      title = "Porcentaje de estudiantes (%)",
+      range = c(0, 100)
+    ),
+    yaxis = list(title = ""),
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.3
+    ),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    margin = list(
+      l = 80,
+      r = 60,
+      b = 110,
+      t = 100
+    )
+  )
+
+# Mostrar figura
+figura_5
+
+```
+
